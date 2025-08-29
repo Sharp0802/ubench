@@ -2,6 +2,8 @@
 
 uBench is a microbenchmark framework focusing on simplicity and precision, written with C++17.
 
+See full docs at [ubench.sharp0802.com](https://ubench.sharp0802.com/).
+
 ## At a glance
 
 ```cpp
