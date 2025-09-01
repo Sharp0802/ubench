@@ -29,7 +29,7 @@ namespace {
   always_inline long double stddev(const long double *v, const size_t size, const long double mean) {
     long double squ_dev = 0;
     for (size_t i = 0; i < size; ++i) {
-      const auto d = mean  - v[i];
+      const auto d = mean - v[i];
       squ_dev += d * d;
     }
     squ_dev /= size;
@@ -107,6 +107,40 @@ namespace ubench {
     return options;
   }
 
+  void benchmark::warmup_light(const arg arg) const {
+    for (auto i = 0; i < 10; ++i) {
+      [[maybe_unused]] auto _ = (*this)(arg);
+    }
+  }
+
+  void benchmark::warmup_heavy(const arg arg) const {
+    constexpr int MAX_TRIES = 64;
+
+    int tries = 0;
+
+    auto old = (*this)(arg);
+    for (auto continuous = 0; continuous < 3 && tries < MAX_TRIES; ++tries) {
+      const auto current = (*this)(arg);
+
+      if (std::abs(old.cv) < EPSILON) {
+        if (std::abs(current.cv) < EPSILON)
+          continuous++;
+        else
+          continuous = 0;
+      }
+      else if (std::abs(old.cv - current.cv) / old.cv <= 0.1)
+        continuous++;
+      else
+        continuous = 0;
+
+      old = current;
+    }
+
+    if (tries >= MAX_TRIES)
+      std::cerr << "warning: benchmark '" << old.name << "' failed to warm up correctly due to too many tries" <<
+        std::endl;
+  }
+
   benchmark::benchmark(const std::string &name, const target_fn target) {
     if (!target)
       throw std::invalid_argument("target not specified");
@@ -171,30 +205,10 @@ namespace ubench {
   }
 
   void benchmark::warm_up(const arg arg) const {
-    constexpr int MAX_TRIES = 64;
-
-    int tries = 0;
-
-    auto old = (*this)(arg);
-    for (auto continuous = 0; continuous < 3 && tries < MAX_TRIES; ++tries) {
-      const auto current = (*this)(arg);
-
-      if (std::abs(old.cv) < EPSILON) {
-        if (std::abs(current.cv) < EPSILON)
-          continuous++;
-        else
-          continuous = 0;
-      }
-      else if (std::abs(old.cv - current.cv) / old.cv <= 0.1)
-        continuous++;
-      else
-        continuous = 0;
-
-      old = current;
-    }
-
-    if (tries >= MAX_TRIES)
-      std::cerr << "warning: benchmark '" << old.name << "' failed to warm up correctly due to too many tries" << std::endl;
+    if (_options->light_warmup)
+      warmup_light(arg);
+    else
+      warmup_heavy(arg);
   }
 
   void benchmark::operator()(std::vector<entry> &entries) const {

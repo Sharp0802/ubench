@@ -92,6 +92,7 @@ namespace ubench {
 
   struct options {
     std::string name;
+    bool light_warmup = false;
     target_fn target = nullptr;
     prepare_fn prepare = nullptr;
     size_t iteration = 10000;
@@ -104,6 +105,9 @@ namespace ubench {
 
   class benchmark {
     options *_options;
+
+    void warmup_light(arg arg) const;
+    void warmup_heavy(arg arg) const;
 
   public:
     explicit benchmark(options *options) : _options(options) {
@@ -141,6 +145,17 @@ namespace ubench {
      */
     benchmark step(const size_t step) const {
       _options->step = step;
+      return *this;
+    }
+
+    /**
+     * Set whether that warm-up should be light
+     *
+     * - Light : Just iterates constant times
+     * - Heavy : Reducing fluctuation of the coefficient of variation below the threshold (10%)
+     */
+    benchmark warmup(const bool light) const {
+      _options->light_warmup = light;
       return *this;
     }
 

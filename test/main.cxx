@@ -30,7 +30,7 @@ static void test(const ubench::arg nth) {
   nth_prime(nth);
 }
 
-BENCHMARK(test).prepare(prepare);
+BENCHMARK(test).prepare(prepare).warmup(true);
 
 int main() {
   const auto entries = ubench::run();
